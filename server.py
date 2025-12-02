@@ -61,16 +61,16 @@ def monitor_auth_log():
             print(f"🔐 Failed Password Attempt: {line}")
 
         # Sudo incorrect password
-        # if "incorrect password" in line.lower():
-        #     print(f"❌ Wrong sudo password: {line}")
+        if "incorrect password" in line.lower():
+            print(f"❌ Wrong sudo password: {line}")
 
-        # # Root login
-        # if "session opened for user root" in line.lower():
-        #     print(f"⚠️ Root session opened: {line}")
+        # Root login
+        if "session opened for user root" in line.lower():
+            print(f"⚠️ Root session opened: {line}")
 
         # Any sudo activity
-        if "sudo" in line.lower() and "tty" in line.lower():
-            print(f"🟡 Sudo Attempt: {line}")
+        # if "sudo" in line.lower() and "tty" in line.lower():
+        #     print(f"🟡 Sudo Attempt: {line}")
 
 
 # ------------------ RUN BOTH ------------------
