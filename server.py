@@ -15,11 +15,11 @@ class FileHandler(FileSystemEventHandler):
     def on_deleted(self, event):
         print(f"🗑 Deleted: {event.src_path}")
 
-    # def on_modified(self, event):
-    #     print(f"✏️ Modified: {event.src_path}")
+    def on_modified(self, event):
+        print(f"✏️ Modified: {event.src_path}")
 
-    # def on_moved(self, event):
-    #     print(f"📥 Moved: {event.src_path} → {event.dest_path}")
+    def on_moved(self, event):
+        print(f"📥 Moved: {event.src_path} → {event.dest_path}")
 
 
 def monitor_files():
@@ -61,12 +61,12 @@ def monitor_auth_log():
             print(f"🔐 Failed Password Attempt: {line}")
 
         # Sudo incorrect password
-        if "incorrect password" in line.lower():
-            print(f"❌ Wrong sudo password: {line}")
+        # if "incorrect password" in line.lower():
+        #     print(f"❌ Wrong sudo password: {line}")
 
-        # Root login
-        if "session opened for user root" in line.lower():
-            print(f"⚠️ Root session opened: {line}")
+        # # Root login
+        # if "session opened for user root" in line.lower():
+        #     print(f"⚠️ Root session opened: {line}")
 
         # Any sudo activity
         if "sudo" in line.lower() and "tty" in line.lower():
