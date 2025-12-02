@@ -1,75 +1,88 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import json, time, hmac, hashlib, os
-
-app = Flask(__name__)
-CORS(app)  # allow frontend JS requests
-
-LOG_FILE = "secure_log.json"
-SECRET_KEY = b"super_secret_key_123"
+import time
+import subprocess
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 
-# ---------- Helpers ----------
-def generate_hmac(msg):
-    return hmac.new(SECRET_KEY, msg.encode(), hashlib.sha256).hexdigest()
-
-def load_logs():
-    return json.load(open(LOG_FILE)) if os.path.exists(LOG_FILE) else []
-
-def save_logs(logs):
-    json.dump(logs, open(LOG_FILE, "w"), indent=4)
+#WATCH_DIR = "/home/shubham"
 
 
-# ---------- API: Add Event ----------
-@app.route("/api/add_event", methods=["POST"])
-def api_add_event():
-    data = request.json
+# ------------------ FILE MONITORING ------------------
+class FileHandler(FileSystemEventHandler):
+    def on_created(self, event):
+        print(f"📁 Created: {event.src_path}")
 
-    event_type = data.get("type")
-    source = data.get("source")
-    details = data.get("details")
-    priority = data.get("priority", "normal")
+    def on_deleted(self, event):
+        print(f"🗑 Deleted: {event.src_path}")
 
-    logs = load_logs()
-    prev_hmac = logs[-1]["hmac"] if logs else "0"
+    def on_modified(self, event):
+        print(f"✏️ Modified: {event.src_path}")
 
-    event = {
-        "seq": len(logs) + 1,
-        "time": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "type": event_type,
-        "source": source,
-        "data": details,
-        "priority": priority,
-        "prev_hmac": prev_hmac,
-    }
-
-    event_string = json.dumps(event, sort_keys=True)
-    event["hmac"] = generate_hmac(event_string)
-
-    logs.append(event)
-    save_logs(logs)
-
-    return jsonify({"success": True, "event": event})
+    def on_moved(self, event):
+        print(f"📥 Moved: {event.src_path} → {event.dest_path}")
 
 
-# ---------- API: Get Logs ----------
-@app.route("/api/get_logs", methods=["GET"])
-def api_get_logs():
-    return jsonify(load_logs())
+def monitor_files():
+    event_handler = FileHandler()
+    observer = Observer()
+    observer.schedule(event_handler, WATCH_DIR, recursive=True)
+    observer.start()
+
+    print(f"📂 Monitoring directory: {WATCH_DIR}")
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+
+    observer.join()
 
 
-# ---------- API: Verify Integrity ----------
-@app.route("/api/verify", methods=["GET"])
-def api_verify():
-    logs = load_logs()
+# ------------------ AUTH LOG MONITORING ------------------
+def monitor_auth_log():
+    print("🔐 Monitoring ALL authentication logs… (journalctl -f)")
+    
+    process = subprocess.Popen(
+        ["journalctl", "-f", "-o", "cat"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
 
-    for i in range(1, len(logs)):
-        if logs[i]["prev_hmac"] != logs[i - 1]["hmac"]:
-            return jsonify({"tampered": True, "at": logs[i]["seq"]})
+    for line in process.stdout:
+        line = line.strip()
 
-    return jsonify({"tampered": False})
+        # Authentication failures
+        if "authentication failure" in line.lower():
+            print(f"❌ Authentication Failure: {line}")
+
+        if "failed password" in line.lower():
+            print(f"🔐 Failed Password Attempt: {line}")
+
+        # Sudo incorrect password
+        if "incorrect password" in line.lower():
+            print(f"❌ Wrong sudo password: {line}")
+
+        # Root login
+        if "session opened for user root" in line.lower():
+            print(f"⚠️ Root session opened: {line}")
+
+        # Any sudo activity
+        if "sudo" in line.lower() and "tty" in line.lower():
+            print(f"🟡 Sudo Attempt: {line}")
 
 
-# ---------- Run server ----------
+# ------------------ RUN BOTH ------------------
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    import threading
+
+    print("🔒 Starting Linux Security Logger (Files + Auth Logs)")
+
+    # Thread 1 → Auth logs
+    t1 = threading.Thread(target=monitor_auth_log, daemon=True)
+    t1.start()
+
+    # Thread 2 → File system
+    monitor_files()
+
