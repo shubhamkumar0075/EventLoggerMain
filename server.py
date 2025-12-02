@@ -69,8 +69,8 @@ def monitor_auth_log():
             print(f"⚠️ Root session opened: {line}")
 
         # Any sudo activity
-        # if "sudo" in line.lower() and "tty" in line.lower():
-        #     print(f"🟡 Sudo Attempt: {line}")
+        if "sudo" in line.lower() and "tty" in line.lower():
+            print(f"🟡 Sudo Attempt: {line}")
 
 
 # ------------------ RUN BOTH ------------------
@@ -80,8 +80,8 @@ if __name__ == "__main__":
     print("🔒 Starting Linux Security Logger (Files + Auth Logs)")
 
     # Thread 1 → Auth logs
-    t1 = threading.Thread(target=monitor_auth_log, daemon=True)
-    t1.start()
+    # t1 = threading.Thread(target=monitor_auth_log, daemon=True)
+    # t1.start()
 
     # Thread 2 → File system
     monitor_files()
