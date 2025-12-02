@@ -12,11 +12,11 @@ class FileHandler(FileSystemEventHandler):
     def on_created(self, event):
         print(f"📁 Created: {event.src_path}")
 
-    def on_deleted(self, event):
-        print(f"🗑 Deleted: {event.src_path}")
+    # def on_deleted(self, event):
+    #     print(f"🗑 Deleted: {event.src_path}")
 
-    def on_modified(self, event):
-        print(f"✏️ Modified: {event.src_path}")
+    # def on_modified(self, event):
+    #     print(f"✏️ Modified: {event.src_path}")
 
     def on_moved(self, event):
         print(f"📥 Moved: {event.src_path} → {event.dest_path}")
@@ -79,9 +79,9 @@ if __name__ == "__main__":
 
     print("🔒 Starting Linux Security Logger (Files + Auth Logs)")
 
-    # Thread 1 → Auth logs
-    # t1 = threading.Thread(target=monitor_auth_log, daemon=True)
-    # t1.start()
+    #Thread 1 → Auth logs
+    t1 = threading.Thread(target=monitor_auth_log, daemon=True)
+    t1.start()
 
     # Thread 2 → File system
     monitor_files()
