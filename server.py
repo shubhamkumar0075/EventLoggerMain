@@ -15,11 +15,11 @@ class FileHandler(FileSystemEventHandler):
     def on_deleted(self, event):
         print(f"🗑 Deleted: {event.src_path}")
 
-    def on_modified(self, event):
-        print(f"✏️ Modified: {event.src_path}")
+    # def on_modified(self, event):
+    #     print(f"✏️ Modified: {event.src_path}")
 
-    def on_moved(self, event):
-        print(f"📥 Moved: {event.src_path} → {event.dest_path}")
+    # def on_moved(self, event):
+    #     print(f"📥 Moved: {event.src_path} → {event.dest_path}")
 
 
 def monitor_files():
