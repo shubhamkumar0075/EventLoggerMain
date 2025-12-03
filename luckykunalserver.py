@@ -1,31 +1,47 @@
 import time
 import subprocess
 import os
+import logging
 from datetime import datetime
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 
 WATCH_DIR = r"C:\Users\kunal\OneDrive\Desktop"
+LOG_FILE = "security_events.log"
+
+# Configure logging
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format='[%(asctime)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 
 def timestamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
+def log_event(message):
+    """Log event to both console and file"""
+    print(message)
+    logging.info(message.replace('[', '').replace(']', '', 1))
+
+
 # ------------------ FILE MONITORING ------------------
 class FileHandler(FileSystemEventHandler):
     def on_created(self, event):
-        print(f"[{timestamp()}] 📁 Created: {event.src_path}")
+        log_event(f"[{timestamp()}] 📁 Created: {event.src_path}")
 
     # def on_deleted(self, event):
-    #     print(f"[{timestamp()}] 🗑 Deleted: {event.src_path}")
+    #     log_event(f"[{timestamp()}] 🗑 Deleted: {event.src_path}")
 
     # def on_modified(self, event):
-    #     print(f"[{timestamp()}] ✏️ Modified: {event.src_path}")
+    #     log_event(f"[{timestamp()}] ✏️ Modified: {event.src_path}")
 
     def on_moved(self, event):
-        print(f"[{timestamp()}] 📥 Moved: {event.src_path} → {event.dest_path}")
+        log_event(f"[{timestamp()}] 📥 Moved: {event.src_path} → {event.dest_path}")
 
 
 def monitor_files():
@@ -34,16 +50,16 @@ def monitor_files():
     observer.schedule(event_handler, WATCH_DIR, recursive=True)
     observer.start()
 
-    print(f"[{timestamp()}] 📂 Monitoring directory: {WATCH_DIR}")
+    log_event(f"[{timestamp()}] 📂 Monitoring directory: {WATCH_DIR}")
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print(f"[{timestamp()}] ⏹️ Stopping file monitor...")
+        log_event(f"[{timestamp()}] ⏹️ Stopping file monitor...")
         observer.stop()
     except Exception as e:
-        print(f"[{timestamp()}] ❌ Error in file monitoring: {e}")
+        log_event(f"[{timestamp()}] ❌ Error in file monitoring: {e}")
         observer.stop()
     finally:
         observer.join()
@@ -51,7 +67,7 @@ def monitor_files():
 
 # ------------------ AUTH LOG MONITORING ------------------
 def monitor_auth_log():
-    print(f"[{timestamp()}] 🔐 Monitoring ALL authentication logs… (journalctl -f)")
+    log_event(f"[{timestamp()}] 🔐 Monitoring ALL authentication logs… (journalctl -f)")
     
     try:
         process = subprocess.Popen(
@@ -61,7 +77,7 @@ def monitor_auth_log():
             text=True
         )
     except FileNotFoundError:
-        print(f"[{timestamp()}] ⚠️ journalctl not available (Windows system detected)")
+        log_event(f"[{timestamp()}] ⚠️ journalctl not available (Windows system detected)")
         return
 
     try:
@@ -70,24 +86,24 @@ def monitor_auth_log():
 
             # Authentication failures
             if "authentication failure" in line.lower():
-                print(f"[{timestamp()}] ❌ Authentication Failure: {line}")
+                log_event(f"[{timestamp()}] ❌ Authentication Failure: {line}")
 
             if "failed password" in line.lower():
-                print(f"[{timestamp()}] 🔐 Failed Password Attempt: {line}")
+                log_event(f"[{timestamp()}] 🔐 Failed Password Attempt: {line}")
 
             # Sudo incorrect password
             if "incorrect password" in line.lower():
-                print(f"[{timestamp()}] ❌ Wrong sudo password: {line}")
+                log_event(f"[{timestamp()}] ❌ Wrong sudo password: {line}")
 
             # Root login
             if "session opened for user root" in line.lower():
-                print(f"[{timestamp()}] ⚠️ Root session opened: {line}")
+                log_event(f"[{timestamp()}] ⚠️ Root session opened: {line}")
 
             # Any sudo activity
             if "sudo" in line.lower() and "tty" in line.lower():
-                print(f"[{timestamp()}] 🟡 Sudo Attempt: {line}")
+                log_event(f"[{timestamp()}] 🟡 Sudo Attempt: {line}")
     except KeyboardInterrupt:
-        print(f"[{timestamp()}] ⏹️ Stopping auth log monitor...")
+        log_event(f"[{timestamp()}] ⏹️ Stopping auth log monitor...")
         process.terminate()
 
 
@@ -95,7 +111,8 @@ def monitor_auth_log():
 if __name__ == "__main__":
     import threading
 
-    print(f"[{timestamp()}] 🔒 Starting Linux Security Logger (Files + Auth Logs)")
+    log_event(f"[{timestamp()}] 🔒 Starting Linux Security Logger (Files + Auth Logs)")
+    log_event(f"[{timestamp()}] 📝 Logging to: {os.path.abspath(LOG_FILE)}")
     print("Press Ctrl+C to stop monitoring...\n")
 
     try:
@@ -106,7 +123,7 @@ if __name__ == "__main__":
         # Thread 2 → File system
         monitor_files()
     except KeyboardInterrupt:
-        print(f"\n[{timestamp()}] 🛑 Security Logger stopped.")
+        log_event(f"\n[{timestamp()}] 🛑 Security Logger stopped.")
     except Exception as e:
-        print(f"[{timestamp()}] 💥 Unexpected error: {e}")
+        log_event(f"[{timestamp()}] 💥 Unexpected error: {e}")
 
